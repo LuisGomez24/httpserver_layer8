@@ -1,16 +1,21 @@
-h1 {
-    text-align: center;
-}
+import url(https://fonts.googleapis.com/css?family=Roboto:300);
 
+h1 {
+  text-align: center;
+}
+div {
+  align-items: center;
+  justify-content: center;
+}
 body {
-    background: #4187d2; /* fallback for old browsers */
-    background: rgb(69, 129, 226);
-    background: linear-gradient(
-      90deg,
-      rgb(82, 143, 218) 0%,
-      rgb(89, 145, 209) 50%
-    );
-    font-family: "Roboto", sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  background: #4187d2; /* fallback for old browsers */
+  background: rgb(69, 129, 226);
+  background: linear-gradient(
+    90deg,
+    rgb(82, 143, 218) 0%,
+    rgb(89, 145, 209) 50%
+  );
+  font-family: "Roboto", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

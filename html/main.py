@@ -1,18 +1,15 @@
 import socket
 
-def get_head(conn):
+def create_dictionary(request, method):
     """ gets headers from client """
-    data = b''
-    while not data.endswith(b"\r\n\r\n"):
-        data += conn.recv(1)
+    data = ''
+    request = request.strip().splitlines()
+    if method == 'POST':
+        data = request.pop()
+        request.pop()           # Extra data 
+    print(request)
     return data
 
-def get_body(conn):
-    """ gets the data from client """
-    data = b''
-    while b'\r\n\r\n' not in data:
-        data += conn.recv(1024)
-    return data
  
 HOST,PORT = '127.0.0.1',8080
  
@@ -28,23 +25,27 @@ while True:
     request = connection.recv(1024).decode('utf-8')
     print(request)
     string_list = request.split('\r\n', 1)     # Split request from spaces
+    if len(string_list) > 1:
+        request  = string_list[1]
+        
     head_data = string_list[0].split(' ')
-    requesting_file = ''
-    
-    try:
-        method = head_data[0]
-        print(method)
-        requesting_file = head_data[1]
-        print(requesting_file)
-        myfile = '' 
-    except IndexError:
-        myfile = 'index_400.html' 
-
-    #print('Client request ',requesting_file)
-    
-    if myfile != 'index_400.html' and requesting_file:
-        myfile = requesting_file.split('?')[0] # After the "?" symbol not relevent here
-        myfile = myfile.lstrip('/')
+    method = head_data[0]
+    print(method)
+    if len(head_data) > 1:
+        try:
+            requesting_file = head_data[1].lstrip('/')
+        except:
+            requesting_file = head_data[1]
+            
+        try:
+            requesting_file = requesting_file.rstrip('?')
+        except:
+            pass
+            
+    print(requesting_file)
+    myfile = requesting_file 
+    data = create_dictionary(request, method)
+    print(data)
         
     if(myfile == ''):
         myfile = 'index.html'    # Load index file as default

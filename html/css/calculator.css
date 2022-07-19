@@ -37,9 +37,13 @@ import url(https://fonts.googleapis.com/css?family=Roboto:300);
   padding: 15px;
   color: #ffffff;
   font-size: 14px;
+  margin: 0 0 15px;
   -webkit-transition: all 0.3 ease;
   transition: all 0.3 ease;
   cursor: pointer;
+}
+#exit {
+    margin: 0;
 }
 .form button:hover,
 .form button:active,
