@@ -1,10 +1,25 @@
-from operator import index
+import re
 import socket
 import json
+from math import sqrt
+from datetime import datetime
 
 can_write = False
 ind = -1
 result = ''
+
+def create_binnacle(headers, method):
+    today = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #current date
+    try:
+        with open('../binnacle.txt', 'a') as file:
+            file.write('date: '+today+'   Host: '+headers['Host']+'   Method: '+method)
+            if method == 'POST':
+                file.write('   Content-Type: '+headers['Content-Type']+'\t Content-Length: '+
+                       headers['Content-Length']+'\n')
+            else:
+                file.write('    Content-Type: NA\t\t\t\t\t\t\t\t\t Content-Length: 0\n')
+    except:
+        print('Cannot create or write in file binnacle.txt')
 
 def read(operation):
     try:
@@ -35,8 +50,55 @@ def create_result(index):
                 status = '400 Bad Request'
     return (status, res)
 
+def parse_operation(operation):
+    dict = {}
+    dict.update({'+': ''})
+    dict.update({'%28': '('})
+    dict.update({'%29': ')'})
+    dict.update({'%2A': '*'})
+    dict.update({'%2B': '+'})
+    dict.update({'%2D': '-'})
+    dict.update({'%2F': '/'})
+    dict.update({'%5E': '**'})
+    
+    for key in dict:
+        operation = operation.replace(key, dict[key])
+    
+    return operation
+
+def add_operation(operation, res):
+    result = operation + '=' + res
+    with open("../JSON/storage.json", "r+") as file:
+        datas = json.load(file)
+        key = str(datas['all'])
+        datas['all'] += 1
+        datas[key] = result
+        file.seek(0)
+        file.write(json.dumps(datas))
+    
+    result = '<p>' + result + '</p>'
+    return result
+
 def write(operation):
-    pass
+    global can_write
+    res = None
+
+    if can_write:
+        raiz = re.compile(r'([\-+*\/^][0-9]|[0-9]|sqrt(.[0-9]))')
+        if re.match(raiz, operation):
+            try:
+                res = eval(operation)
+                status = '200 OK'
+            except:
+                status = '400 Bad Request'
+        else:
+            status = '400 Bad Request'
+    else:
+        status = '401 Unauthorized'
+    
+    
+    return (status, str(res))
+        
 
 # {1: {'operation': '2+5-8', 'result': '-1'}, 2:'6*4/2'}
 
@@ -61,13 +123,11 @@ def separate_request(request, method):
     return data
 
 def create_dictionary(request, method):
-    if method == 'POST':
-        dict = {}
-        for data in request:
-            data_list = data.split(':', 1)
-            dict.update({data_list[0]: data_list[1].lstrip()})
-    else:
-        dict = None
+    dict = {}
+    for data in request:
+        data_list = data.split(':', 1)
+        dict.update({data_list[0]: data_list[1].lstrip()})
+        
     return dict
 
 def parse_data(data):
@@ -111,9 +171,10 @@ def choose_data(data):
                 result = res
             case 'write':
                 filename = 'calculator.html'
-                status = write(data['operation'])
-                res = create_result(index)
-                result = res
+                operation = parse_operation(data['operation'])
+                status, res = write(operation)
+                if res is not None:
+                    result = add_operation(operation, res)
             case 'exit':
                 status = '200 OK'
                 filename = 'index.html'
@@ -139,7 +200,6 @@ while True:
         
     head_data = string_list[0].split(' ')  # protocol and method
     method = head_data[0]
-    print(method)
     try:
         requesting_file = head_data[1].lstrip('/')
     except:
@@ -152,11 +212,7 @@ while True:
             
     myfile = requesting_file
     data, headers = parse_request(request, method)
-    print(data)
-    try:
-        print(data['type'])
-    except:
-        pass
+    create_binnacle(headers, method)
     status = '200 OK'
     
     if method == 'POST':
@@ -179,8 +235,8 @@ while True:
         response = response.decode('utf-8')
         match status:
             case '401 Unauthorized':
-                response = response.replace('<!--' , '')
-                response = response.replace('-->', '')
+                response = response.replace('<!---' , '')
+                response = response.replace('--->', '')
             case '400 Bad Request':
                 response = response.replace('<!--*' , '')
                 response = response.replace('*-->', '')
