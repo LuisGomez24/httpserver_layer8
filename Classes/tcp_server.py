@@ -7,22 +7,17 @@ import server
 import random
 
 from Classes.general_socket import Socket
-from Classes.router import Router
-from Classes.disk import Disk
-from Classes.memory import Memory
 import Classes.expressions as expressions
 import Classes.expression_tree as expression_tree
+import parse_request as parser
 
 ''' TCP Server for handling a single client '''
 class TCPServer(Socket):
 
     def __init__(self, host, port):
         Socket.__init__(self, host, port)
-        self.disk = Disk()
-        self.memory = Memory()
-        self.router = None
 
-    def configure_server(self, node):
+    def configure_server(self):
         ''' Configure the server '''
 
         # create TCP socket for server
@@ -32,16 +27,6 @@ class TCPServer(Socket):
         self.printwt(f'Binding server to {self.host}:{self.port}...')
         self.sock.bind((self.host, self.port))
         self.printwt(f'Server binded to {self.host}:{self.port}')
-        
-        self.printwt(f'Creating router to node {node}...')
-        self.router = Router(self, node)
-        self.router.configure_router()
-        self.printwt(f'Router {node} was created...')
-        
-        self.printwt('Initializing page table from main memory...')
-        self.memory.init_page_table()
-        self.printwt('Main memory is running...')
-        
     
     def authentic(self, user, passw):
         ''' Get credentials for a given user '''
@@ -74,18 +59,29 @@ class TCPServer(Socket):
             self.printwt('Login request rejected...')
             
         return response
-
-    def handle_client(self, client_sock, client_address):
+    
+    def handle_request(self, request):
+        string_list = request.split('\r\n', 1)     # Split request from spaces
+        if len(string_list) > 1:
+            request  = string_list[1]
+            
+        head_data = string_list[0].split(' ')
+        method = head_data[0]
+        requesting_file = parser.get_requesting_file(head_data)
+        data, headers = parser.parse_request(request, method)
+            
+        
+    def handle_client(self, client_data):
         ''' Handle the accepted client's requests '''
         
-        client_data = (client_sock, client_address)
+        client_sock, client_address = client_data
         
         try:
-            data_enc = client_sock.recv(1024)
+            request = self.recv(client_data)
             
-            while data_enc:
+            with request:
+                self.handle_request(request)
                 # client's request
-                request = data_enc.decode()
                 response = self.login_request(request)
                 self.printwt(f'[ REQUEST from {client_address} ]')
 

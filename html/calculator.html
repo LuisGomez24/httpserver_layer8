@@ -12,11 +12,15 @@
         <div class="form">
           <form class="request-form" method="post">
             <input name="operation" type="text" placeholder="Operation"/>
-            <button type="submit" formaction="/">Read</button>
-            <button type="submit" formaction="/">Write</button>
-            <button id="exit" type="submit">Exit</button>
+            <button name="type" value="read" type="submit" >Read</button>
+            <button name="type" value="write" type="submit">Write</button>
+            <button name="type" value="exit" id="exit" type="submit">Exit</button>
           </form>
         </div>
+        <!--<p>Invalid operation!</p>-->
+        <!--<div class="result">
+          <label></label>
+        </div>-->
       </div>
 </body>
 </html>

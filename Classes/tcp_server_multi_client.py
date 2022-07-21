@@ -35,10 +35,10 @@ class ReceptionSocket(TCPServer):
             self.sock.listen(10) # 10 clients before server refuses connections
 
             while True:
-                client_sock, client_address = self.sock.accept()
-                self.printwt(f'Accepted connection from {client_address}')
+                data = self.sock.accept()
+                self.printwt(f'Accepted connection from {data[1]}')
                 c_thread = threading.Thread(target = self.handle_client,
-                                        args = (client_sock, client_address))
+                                        args = data)
                 c_thread.daemon = True
                 c_thread.start()
 

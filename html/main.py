@@ -1,15 +1,94 @@
 import socket
+import json
 
-def create_dictionary(request, method):
-    """ gets headers from client """
-    data = ''
-    request = request.strip().splitlines()
+can_write = False
+
+def read(operation):
+    try:
+        index = int(operation)
+        if index == -1:
+            index = 'all'
+    except:
+        index = None
+        return ('400 Bad Request', index)
+    return ('200 OK', index)
+
+def write(operation):
+    pass
+
+# {1: {'operation': '2+5-8', 'result': '-1'}, 2:'6*4/2'}
+
+def login(user, passwd):
+    ''' Get credentials for a given user '''
+        
+    with open("../JSON/users.json", "r") as file:
+    
+        datas = json.load(file)
+
+        for users in datas["users"]:
+            if (user == users["username"] and passwd == users["password"]):
+                return ('200 OK', users["canWrite"])
+    
+    return ('401 Unauthorized', False)
+
+def separate_request(request, method):
+    data = None
     if method == 'POST':
         data = request.pop()
         request.pop()           # Extra data 
-    print(request)
     return data
 
+def create_dictionary(request, method):
+    if method == 'POST':
+        dict = {}
+        for data in request:
+            data_list = data.split(':', 1)
+            dict.update({data_list[0]: data_list[1].lstrip()})
+    else:
+        dict = None
+    return dict
+
+def parse_data(data):
+    dict = {}
+    data = data.split('&')
+    for d in data:
+        token = d.split('=')
+        if len(token) == 1:
+            dict.update({token[0]:''})
+        else:
+            dict.update({token[0]:token[1]})
+    return dict
+
+def parse_request(request, method):
+    request = request.strip().splitlines()
+    data = separate_request(request, method)
+    dict = create_dictionary(request, method)
+    if data is not None:
+        data = parse_data(data)
+    return (data, dict)
+
+def choose_data(data):
+    try:
+        filename = None
+        match data['type']:
+            case 'login':
+                global can_write
+                status, write = login(data['user'], data['password'])
+                can_write = write
+                if status == '401 Unauthorized':
+                    filename = 'index.html'
+                else:
+                    filename = 'calculator.html'
+            case 'read':
+                status = read(data['operation'])
+            case 'write':
+                status = write(data['operation'])
+            case 'exit':
+                status = '200 OK'
+                filename = 'index.html'
+    except:
+        filename = 'index_404.html'
+    return (status, filename)
  
 HOST,PORT = '127.0.0.1',8080
  
@@ -23,29 +102,39 @@ print('Serving on port ',PORT)
 while True:
     connection,address = my_socket.accept()
     request = connection.recv(1024).decode('utf-8')
-    print(request)
     string_list = request.split('\r\n', 1)     # Split request from spaces
     if len(string_list) > 1:
-        request  = string_list[1]
+        request  = string_list[1]      # Request without protocol and method
         
-    head_data = string_list[0].split(' ')
+    head_data = string_list[0].split(' ')  # protocol and method
     method = head_data[0]
     print(method)
-    if len(head_data) > 1:
-        try:
-            requesting_file = head_data[1].lstrip('/')
-        except:
-            requesting_file = head_data[1]
+    try:
+        requesting_file = head_data[1].lstrip('/')
+    except:
+        requesting_file = ''
+
+    try:
+        requesting_file = requesting_file.rstrip('?')
+    except:
+        pass
             
-        try:
-            requesting_file = requesting_file.rstrip('?')
-        except:
-            pass
-            
-    print(requesting_file)
-    myfile = requesting_file 
-    data = create_dictionary(request, method)
+    myfile = requesting_file
+    data, headers = parse_request(request, method)
     print(data)
+    try:
+        print(data['type'])
+    except:
+        pass
+    status = '200 OK'
+    
+    if method == 'POST':
+        status, myfile = choose_data(data)
+        if myfile is None:
+            myfile = 'index_404.html'
+            status = '404 Not Found'
+    
+    print('status ', status)
         
     if(myfile == ''):
         myfile = 'index.html'    # Load index file as default
@@ -54,8 +143,14 @@ while True:
         file = open(myfile,'rb') # open file , r => read , b => byte format
         response = file.read()
         file.close()
+        
+        if status == '401 Unauthorized':
+            response = response.decode('utf-8')
+            response = response.replace('<!--' , '')
+            response = response.replace('-->', '')
+            response = response.encode('utf-8')
  
-        header = 'HTTP/1.1 200 OK\n'
+        header = 'HTTP/1.1' + status + '\n'
         if(myfile.endswith(".css")):
             mimetype = 'text/css'
         else:
