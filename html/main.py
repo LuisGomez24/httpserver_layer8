@@ -1,7 +1,10 @@
+from operator import index
 import socket
 import json
 
 can_write = False
+ind = -1
+result = ''
 
 def read(operation):
     try:
@@ -10,8 +13,27 @@ def read(operation):
             index = 'all'
     except:
         index = None
-        return ('400 Bad Request', index)
-    return ('200 OK', index)
+        return ('400 Bad Request', str(index))
+    print(index)
+    return ('200 OK', str(index))
+
+def create_result(index):
+    res = ''
+    with open("../JSON/storage.json", "r") as file:
+        datas = json.load(file)
+        datas.pop('all')
+        if index == 'all':
+            for key in datas:
+                res += '<p>' + datas[key] + '</p>'
+                status = '200 OK'
+        else:
+            try:
+                res = '<p>' + datas[index] + '</p>'
+                status = '200 OK'
+            except:
+                res = None
+                status = '400 Bad Request'
+    return (status, res)
 
 def write(operation):
     pass
@@ -70,19 +92,28 @@ def parse_request(request, method):
 def choose_data(data):
     try:
         filename = None
+        global result
         match data['type']:
             case 'login':
                 global can_write
-                status, write = login(data['user'], data['password'])
-                can_write = write
+                status, write_op = login(data['user'], data['password'])
+                can_write = write_op
                 if status == '401 Unauthorized':
                     filename = 'index.html'
                 else:
                     filename = 'calculator.html'
             case 'read':
-                status = read(data['operation'])
+                filename = 'calculator.html'
+                status, index = read(data['operation'])
+                if status == '400 Bad Request':
+                    return (status, filename)
+                status, res = create_result(index)
+                result = res
             case 'write':
+                filename = 'calculator.html'
                 status = write(data['operation'])
+                res = create_result(index)
+                result = res
             case 'exit':
                 status = '200 OK'
                 filename = 'index.html'
@@ -144,11 +175,24 @@ while True:
         response = file.read()
         file.close()
         
-        if status == '401 Unauthorized':
-            response = response.decode('utf-8')
-            response = response.replace('<!--' , '')
-            response = response.replace('-->', '')
-            response = response.encode('utf-8')
+         
+        response = response.decode('utf-8')
+        match status:
+            case '401 Unauthorized':
+                response = response.replace('<!--' , '')
+                response = response.replace('-->', '')
+            case '400 Bad Request':
+                response = response.replace('<!--*' , '')
+                response = response.replace('*-->', '')
+            case '200 OK':
+                try: 
+                    if data['type'] == 'read' or data['type'] == 'write':
+                        response = response.replace('<!--/' , '')
+                        response = response.replace('/-->', '')
+                        response =  response.replace('###', result)
+                except:
+                    pass
+        response = response.encode('utf-8')
  
         header = 'HTTP/1.1' + status + '\n'
         if(myfile.endswith(".css")):
