@@ -1,3 +1,11 @@
+'''
+Equipo Layer 8
+Estudiantes:
+Luis Gomez Sanchez
+Yuan Isa Wu
+Keylor Soto Delgado
+'''
+
 import re
 import socket
 import json
@@ -34,7 +42,7 @@ def read(operation):
 
 def create_result(index):
     res = ''
-    with open("../JSON/storage.json", "r") as file:
+    with open("JSON/storage.json", "r") as file:
         datas = json.load(file)
         datas.pop('all')
         if index == 'all':
@@ -68,7 +76,7 @@ def parse_operation(operation):
 
 def add_operation(operation, res):
     result = operation + '=' + res
-    with open("../JSON/storage.json", "r+") as file:
+    with open("JSON/storage.json", "r+") as file:
         datas = json.load(file)
         key = str(datas['all'])
         datas['all'] += 1
@@ -105,7 +113,7 @@ def write(operation):
 def login(user, passwd):
     ''' Get credentials for a given user '''
         
-    with open("../JSON/users.json", "r") as file:
+    with open("JSON/users.json", "r") as file:
     
         datas = json.load(file)
 
@@ -159,27 +167,27 @@ def choose_data(data):
                 status, write_op = login(data['user'], data['password'])
                 can_write = write_op
                 if status == '401 Unauthorized':
-                    filename = 'index.html'
+                    filename = 'html/index.html'
                 else:
-                    filename = 'calculator.html'
+                    filename = 'html/calculator.html'
             case 'read':
-                filename = 'calculator.html'
+                filename = 'html/calculator.html'
                 status, index = read(data['operation'])
                 if status == '400 Bad Request':
                     return (status, filename)
                 status, res = create_result(index)
                 result = res
             case 'write':
-                filename = 'calculator.html'
+                filename = 'html/calculator.html'
                 operation = parse_operation(data['operation'])
                 status, res = write(operation)
-                if res is not None:
+                if status != '400 Bad Request':
                     result = add_operation(operation, res)
             case 'exit':
                 status = '200 OK'
-                filename = 'index.html'
+                filename = 'html/index.html'
     except:
-        filename = 'index_404.html'
+        filename = 'html/index_404.html'
     return (status, filename)
  
 HOST,PORT = '127.0.0.1',8080
@@ -218,13 +226,13 @@ while True:
     if method == 'POST':
         status, myfile = choose_data(data)
         if myfile is None:
-            myfile = 'index_404.html'
+            myfile = 'html/index_404.html'
             status = '404 Not Found'
     
     print('status ', status)
         
     if(myfile == ''):
-        myfile = 'index.html'    # Load index file as default
+        myfile = 'html/index.html'    # Load index file as default
  
     try:
         file = open(myfile,'rb') # open file , r => read , b => byte format
@@ -260,7 +268,7 @@ while True:
  
     except Exception as e:
         header = 'HTTP/1.1 404 Not Found\n\n'
-        file = open("index_404.html",'rb') # open file , r => read , b => byte format
+        file = open("html/index_404.html",'rb') # open file , r => read , b => byte format
         response = file.read()
         file.close()
  
