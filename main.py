@@ -19,7 +19,7 @@ result = ''
 def create_binnacle(headers, method):
     today = datetime.now().strftime('%Y-%m-%d %H:%M:%S') #current date
     try:
-        with open('../binnacle.txt', 'a') as file:
+        with open('binnacle.txt', 'a') as file:
             file.write('date: '+today+'   Host: '+headers['Host']+'   Method: '+method)
             if method == 'POST':
                 file.write('   Content-Type: '+headers['Content-Type']+'\t Content-Length: '+
